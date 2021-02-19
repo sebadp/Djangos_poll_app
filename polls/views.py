@@ -4,6 +4,7 @@ from django.urls import reverse
 from .models import Question, Choice
 from django.db.models import F 
 from django.views import generic
+from django.utils import timezone
 
 # ANTES DE LAS GENERIC VIEWS
 # def index(request):
@@ -26,7 +27,11 @@ class IndexView(generic.ListView):
     context_object_name = 'latest_question_list'
 
     def get_queryset(self):
-        return Question.objects.order_by('-pub_date')[:5]
+        """
+        Devolvemos las 5 Questions que fueron publicadas en el último día
+        Pero no permitimos que muestren una asignada al futuro
+        """
+        return Question.objects.filter(pub_date__lte=timezone.now())order_by('-pub_date')[:5]
 
 class DetailView(generic.DateDetailView):
     model = Question
@@ -46,7 +51,7 @@ def vote(request, question_id):
             'error_message': "No seleccionaste una opción.",
             })
     else:
-        selected_choice.votes = F('votes') + 1  #acá evitamos el 'race condition'
-        selected_choice.save()
+        selected_choice.votes = F('votes') + 1  # acá evitamos el 'race condition' con F(): 
+        selected_choice.save()                  # si dos votos suceden al mismo tiempo.
     return HttpResponseRedirect(reverse('polls:results', args=(question_id,)))
     
