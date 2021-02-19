@@ -2,6 +2,16 @@ from django.test import TestCase
 import datetime
 from django.utils import timezone
 from polls.models import Question
+from django.urls import reverse
+
+def create_question(question_text, days):
+    """
+    Crea una Question con los argumentos que le pasamos a la función
+    si la queremos en el pasado o en el futuro lo determinamos con el 
+    segundo argumento, days, en positivo o negativo.
+    """
+    time = timezone.now() + datetime.timedelta(days=days)
+    return Question.objects.create(question_text=question_text, pub_date=time)
 
 class QuestionModelTests(TestCase):
 
@@ -32,3 +42,51 @@ class QuestionModelTests(TestCase):
         recent_question = Question(pub_date=time)
 
         self.assertIs(recent_question.was_published_recently(), True)
+
+class QuestionIndexViewTests(TestCase):
+    def test_no_questions(self):
+        """
+        Si no existe una Question, un mensaje apropiado se debería presentar
+        """
+        response = self.client.get(reverse('polls:index'))
+        print(response.context)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No hay Encuestas disponibles")
+        self.assertQuerysetEqual(response.context['latest_question_list'], [])
+
+    def test_past_question(self):
+        """
+        Una Question en el pasado se tendría que mostrar en el index
+        """
+        create_question(question_text='Past question.', days=-30)
+        response = self.client.get(reverse('polls:index'))
+        self.assertQuerysetEqual(response.context['latest_question_list'], ['<Question: Past question.>'])
+
+    def test_test_future_question(self):
+        """
+        Las Question en futuro no se deberían mostrar en index
+        """
+        create_question(question_text='Future question', days=30)
+        response = self.client.get(reverse('polls:index'))
+        self.assertContains(response, "No hay Encuestas disponibles")
+        self.assertQuerysetEqual(response.context['latest_question_list'], [])
+
+    def test_future_question_and_past_question(self):
+        """
+        Habiendo Questions tanto en pasado como en futuro, sólo las pasadas se tienen que publicar
+        """
+        create_question(question_text='Past question.', days=-30)
+        create_question(question_text='Future question', days=30)
+        response = self.client.get(reverse('polls:index'))
+        self.assertQuerysetEqual(response.context['latest_question_list'], ['<Question: Past question.>'])
+
+    def test_two_past_questions(self):
+        """
+        Probamos que si hay varias Question en pasado, se muestren todas
+        """
+        create_question(question_text='Past question 1.', days=-30)
+        create_question(question_text='Past question 2.', days=-5)
+        response = self.client.get(reverse('polls:index'))
+        self.assertQuerysetEqual(response.context['latest_question_list'], ['<Question: Past question 2.>', '<Question: Past question 1.>'])
+
+

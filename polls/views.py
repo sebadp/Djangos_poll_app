@@ -31,7 +31,7 @@ class IndexView(generic.ListView):
         Devolvemos las 5 Questions que fueron publicadas en el último día
         Pero no permitimos que muestren una asignada al futuro
         """
-        return Question.objects.filter(pub_date__lte=timezone.now())order_by('-pub_date')[:5]
+        return Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
 
 class DetailView(generic.DateDetailView):
     model = Question
