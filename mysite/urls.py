@@ -16,7 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('polls/', include('polls.urls'))
-]
+urlpatterns = [path("admin/", admin.site.urls), path("polls/", include("polls.urls"))]
+
+admin.site.index_title = "Inicio"
+admin.site.site_header = "La biblioteca Local"
+admin.site.site_title = "La biblioteca Local"
